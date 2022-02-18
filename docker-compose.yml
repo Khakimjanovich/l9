@@ -1,0 +1,63 @@
+version: "3.7"
+services:
+
+    #PHP service
+    app:
+        build:
+            args:
+                user: www
+                uid: 1000
+            context: ./
+            dockerfile: Dockerfile
+        image: l9
+        container_name: l9
+        restart: unless-stopped
+        tty: true
+        volumes:
+            - ./:/var/www/html/app
+            - ./docker-compose/php/99-xdebug.ini:/usr/local/etc/php/conf.d/99-xdebug.ini
+            - ./docker-compose/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+        networks:
+            - l9
+
+    #NGINX service
+    webserver:
+        image: nginx:alpine
+        container_name: l9_server
+        restart: unless-stopped
+        tty: true
+        ports:
+            - "8101:80"
+            - "4451:443"
+        volumes:
+            - ./:/var/www/html/app
+            - ./docker-compose/nginx:/etc/nginx/conf.d/
+        networks:
+            - l9
+    #DATABASE service
+    db:
+        image: mariadb
+        container_name: l9_db
+        tty: true
+        ports:
+            - "3321:3306"
+        restart: unless-stopped
+        environment:
+            MYSQL_DATABASE: l9
+            MYSQL_ROOT_PASSWORD: password
+            MYSQL_USER: root
+            MYSQL_PASSWORD: password
+            SERVICE_TAGS: dev
+            SERVICE_NAME: mysql
+        volumes:
+            -   type: volume
+                source: mysqldata
+                target: /var/lib/mysql
+        networks:
+            - l9
+networks:
+    l9:
+        driver: bridge
+volumes:
+    mysqldata:
+
